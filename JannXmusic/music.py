@@ -5,7 +5,6 @@ from telegram import Update
 import os
 from queue import Queue
 from config import BOT_TOKEN
-from config import *
 from sudos import SUDO_USER_ID
 
 song_queue = Queue()
@@ -125,7 +124,7 @@ def inline_query(update: Update, context: CallbackContext) -> None:
     update.inline_query.answer(results)
 
 def main() -> None:
-    updater = Updater(TOKEN)
+    updater = Updater(BOT_TOKEN)
     dispatcher = updater.dispatcher
 
     dispatcher.add_handler(CommandHandler("play", play))
