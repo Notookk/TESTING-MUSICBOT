@@ -6,7 +6,7 @@ import os
 from queue import Queue
 from config import BOT_TOKEN
 from config import *
-
+from sudos import SUDO_USER_ID
 
 song_queue = Queue()
 current_song = None
