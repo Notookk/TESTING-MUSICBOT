@@ -3,20 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mini App Music Player</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Music Player</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+
+        #thumbnail {
+            border-radius: 50%;
+            width: 300px;
+            height: 300px;
+            object-fit: cover;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        #thumbnail:hover {
+            transform: scale(1.05);
+        }
+
+        #song-name {
+            font-size: 32px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background-color: #2a5298;
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #1e3c72;
+            transform: scale(1.05);
+        }
+
+        button:active {
+            background-color: #1e3c72;
+            transform: scale(0.95);
+        }
+
+        audio {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const socket = io('http://localhost:8000/ws');
+
+        socket.on('connect', () => {
+            console.log('Connected to backend');
+        });
+
+        socket.on('play_song', data => {
+            console.log(`Received song data: ${data.song_name}`);
+            document.getElementById('song-name').innerText = data.song_name;
+            document.getElementById('thumbnail').src = `https://example.com/thumbnail/${data.song_name}`;
+            startStreaming(data.song_name);
+        });
+
+        function startStreaming(songName) {
+            const audio = document.getElementById('audio-player');
+            audio.src = `http://localhost:8000/stream/${songName}.mp3`;
+            audio.play();
+        }
+
+        function handleTelegramWebApp() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.setTitle('Music Player');
+                window.Telegram.WebApp.setBackgroundColor('#1e3c72');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', handleTelegramWebApp);
+    </script>
 </head>
 <body>
-    <div class="player-container">
-        <div class="thumbnail-container">
-            <img id="thumbnail" src="" alt="Song Thumbnail">
-        </div>
-        <h1 id="song-title">Waiting for song...</h1>
+    <div id="player">
+        <img id="thumbnail" src="https://via.placeholder.com/300" alt="Thumbnail">
+        <div id="song-name">Song Name</div>
         <audio id="audio-player" controls></audio>
+        <div id="controls">
+            <!-- Add control buttons here if needed -->
+            <button id="play-button">Play</button>
+            <button id="pause-button">Pause</button>
+            <button id="prev-button">Previous</button>
+            <button id="next-button">Next</button>
+        </div>
     </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
 </body>
 </html>
