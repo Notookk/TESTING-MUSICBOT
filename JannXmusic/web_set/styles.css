@@ -1,56 +1,91 @@
+/* Global Styles */
 body {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a2e;
+    color: #fff;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    margin: 0;
 }
 
+/* Player Container */
 .player-container {
-    background: white;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    width: 300px;
     text-align: center;
+    background: #16213e;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 1s ease-in-out;
 }
 
-.thumbnail {
-    width: 120px;
-    height: 120px;
+/* Song Title */
+#song-title {
+    margin: 20px 0;
+    font-size: 1.5em;
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Thumbnail Container */
+.thumbnail-container {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
     border-radius: 50%;
     overflow: hidden;
-    margin: 0 auto;
-    background: #ddd;
+    border: 5px solid #e94560;
+    animation: rotateIn 1s ease-in-out;
 }
 
-.thumbnail img {
+.thumbnail-container img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
 }
 
+.thumbnail-container img:hover {
+    transform: scale(1.1);
+}
+
+/* Audio Player */
 audio {
     width: 100%;
-    margin: 10px 0;
-}
-
-.time-info {
-    margin: 10px 0;
-}
-
-.controls button {
-    background-color: #007bff;
-    color: white;
-    border: none;
+    margin-top: 20px;
     border-radius: 5px;
-    padding: 10px 20px;
-    margin: 5px;
-    cursor: pointer;
 }
 
-.controls button:hover {
-    background-color: #0056b3;
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes rotateIn {
+    from {
+        transform: rotate(-360deg);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
 }
