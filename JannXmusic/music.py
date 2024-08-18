@@ -1,139 +1,58 @@
-from telegram import InlineQueryResultArticle, InputTextMessageContent, ChatMember
-from telegram.ext import Updater, InlineQueryHandler, CommandHandler, CallbackContext
-from yt_dlp import YoutubeDL
-from telegram import Update
 import os
-from queue import Queue
-from config import BOT_TOKEN
-from sudos import SUDO_USER_ID
+import json
+import asyncio
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import StreamingResponse
+import yt_dlp
+import socketio
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
-song_queue = Queue()
-current_song = None
+app = FastAPI()
+sio = socketio.AsyncServer()
+sio.attach(app)
 
-def is_admin_or_sudo(update: Update) -> bool:
-    """Check if the user is an admin in the group or the sudo user."""
-    user_id = update.effective_user.id
-    if user_id == SUDO_USER_ID:
-        return True
-    member_status = update.effective_chat.get_member(user_id).status
-    return member_status in [ChatMember.ADMINISTRATOR, ChatMember.CREATOR]
+DOWNLOAD_DIR = "./downloads"
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
-def download_audio(url: str):
-    # Directory to save the audio file
-    output_dir = "downloads"
-    os.makedirs(output_dir, exist_ok=True)
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': os.path.join(output_dir, '%(title)s.%(ext)s'),
-        'quiet': True
-    }
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        file_name = os.path.join(output_dir, f"{info['title']}.mp3")
-        return file_name
-
-def play_song(update: Update, context: CallbackContext, song_name: str) -> None:
-    global current_song
-    file_name = download_audio(song_name)
-    current_song = file_name
-    with open(file_name, 'rb') as audio_file:
-        update.message.reply_audio(audio=audio_file)
-    update.message.reply_text(f"Now playing: {song_name}")
+TOKEN = 'YOUR_BOT_TOKEN'
+updater = Updater(TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
 def play(update: Update, context: CallbackContext) -> None:
     song_name = ' '.join(context.args)
     if not song_name:
-        update.message.reply_text("Please provide a song name or URL.")
+        update.message.reply_text('Please provide a song name.')
         return
-    song_queue.put(song_name)
-    if not current_song:
-        play_next_song(update)
 
-def play_next_song(update: Update) -> None:
-    if not song_queue.empty():
-        song_name = song_queue.get()
-        play_song(update, None, song_name)
+    # Generate the Mini App URL with song information
+    mini_app_url = f"https://t.me/{context.bot.username}?startapp=song_{song_name.replace(' ', '_')}"
 
-def skip(update: Update, context: CallbackContext) -> None:
-    if not is_admin_or_sudo(update):
-        update.message.reply_text("Only admins or the sudo user can use this command.")
-        return
-    global current_song
-    if current_song:
-        update.message.reply_text("Skipping current song.")
-        os.remove(current_song)
-        current_song = None
-        play_next_song(update)
-    else:
-        update.message.reply_text("No song is currently playing.")
+    # Create a button to join the Mini App
+    keyboard = [[InlineKeyboardButton("Listen on Web", url=mini_app_url)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
 
-def end(update: Update, context: CallbackContext) -> None:
-    if not is_admin_or_sudo(update):
-        update.message.reply_text("Only admins or the sudo user can use this command.")
-        return
-    global current_song
-    if current_song:
-        os.remove(current_song)
-        current_song = None
-    song_queue.queue.clear()
-    update.message.reply_text("Stopped playback and cleared the queue.")
+    update.message.reply_text(f'Searching for {song_name}...', reply_markup=reply_markup)
 
-def next(update: Update, context: CallbackContext) -> None:
-    if not is_admin_or_sudo(update):
-        update.message.reply_text("Only admins or the sudo user can use this command.")
-        return
-    if not song_queue.empty():
-        update.message.reply_text("Playing next song in the queue.")
-        play_next_song(update)
-    else:
-        update.message.reply_text("No more songs in the queue.")
+    # Emit the play command to the WebSocket
+    asyncio.run(sio.emit('play_song', {'song_name': song_name}))
 
-def stop(update: Update, context: CallbackContext) -> None:
-    if not is_admin_or_sudo(update):
-        update.message.reply_text("Only admins or the sudo user can use this command.")
-        return
-    global current_song
-    if current_song:
-        os.remove(current_song)
-        current_song = None
-    else:
-        update.message.reply_text("No song is currently playing.")
+dispatcher.add_handler(CommandHandler('play', play))
 
-def queue(update: Update, context: CallbackContext) -> None:
-    if song_queue.empty():
-        update.message.reply_text("The queue is empty.")
-    else:
-        queue_list = list(song_queue.queue)
-        update.message.reply_text("Current queue:\n" + "\n".join(queue_list))
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        if data == 'play':
+            await websocket.send_text("Streaming started...")
 
-def inline_query(update: Update, context: CallbackContext) -> None:
-    query = update.inline_query.query
-    results = []
+@app.get("/stream/{filename}")
+async def stream(filename: str):
+    file_path = os.path.join(DOWNLOAD_DIR, filename)
+    return StreamingResponse(open(file_path, "rb"), media_type="audio/mp3")
 
-    if query:
-        results.append(
-            InlineQueryResultArticle(
-                id=query,
-                title="Play Song",
-                input_message_content=InputTextMessageContent("Here's your song!"),
-                url="https://your-web-app-url.com",
-                thumb_url="https://example.com/thumbnail.jpg"
-            )
-        )
-
-    update.inline_query.answer(results)
-
-def main() -> None:
-    updater = Updater(BOT_TOKEN)
-    dispatcher = updater.dispatcher
-
-    dispatcher.add_handler(CommandHandler("play", play))
-    dispatcher.add_handler(CommandHandler("skip", skip))
-    dispatcher.add_handler(CommandHandler("end", end))
-    dispatcher.add_handler(CommandHandler("next", next))
-    dispatcher.add_handler(CommandHandler("stop", stop))
-    dispatcher.add_handler(CommandHandler("queue", queue))
-    dispatcher.add_handler(InlineQueryHandler(inline_query))
-
+if __name__ == "__main__":
     updater.start_polling()
-    updater.idle()
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
