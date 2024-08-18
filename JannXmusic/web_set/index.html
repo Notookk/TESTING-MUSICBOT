@@ -3,26 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Player</title>
+    <title>Telegram Mini App Music Player</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="player-container">
-        <div class="thumbnail">
-            <img src="thumbnail.jpg" alt="Song Thumbnail">
+        <div class="thumbnail-container">
+            <img id="thumbnail" src="" alt="Song Thumbnail">
         </div>
-        <audio id="audio-player" controls>
-            <source src="song.mp3" type="audio/mpeg">
-            Your browser does not support the audio element.
-        </audio>
-        <div class="time-info">
-            <span id="current-time">0:00</span> / <span id="duration">0:00</span>
-        </div>
-        <div class="controls">
-            <button id="skip">Skip</button>
-            <button id="stop">Stop</button>
-        </div>
+        <h1 id="song-title">Waiting for song...</h1>
+        <audio id="audio-player" controls></audio>
     </div>
-    <script src="script.js"></script>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
